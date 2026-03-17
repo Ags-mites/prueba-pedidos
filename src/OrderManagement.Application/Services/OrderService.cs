@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OrderManagement.Application.DTOs;
 using OrderManagement.Application.Interfaces;
+using OrderManagement.Application.Mappings;
 using OrderManagement.Domain.Entities;
 using OrderManagement.Domain.Interfaces;
 using OrderManagement.Infrastructure.Data;
@@ -38,7 +39,7 @@ public class OrderService : IOrderService
 
         try
         {
-            await _auditoryRepository.CreateAsync(new LogAuditory
+            await _auditoryRepository.CreateIsolatedAsync(new LogAuditory
             {
                 Date = DateTime.UtcNow,
                 Event = "INICIO",
@@ -54,7 +55,7 @@ public class OrderService : IOrderService
                 var msg = $"El cliente {request.ClienteId} no superó la validación externa.";
                 _logger.LogWarning(msg);
 
-                await _auditoryRepository.CreateAsync(new LogAuditory
+                await _auditoryRepository.CreateIsolatedAsync(new LogAuditory
                 {
                     Date = DateTime.UtcNow,
                     Event = "ERROR_VALIDACION",
@@ -65,36 +66,40 @@ public class OrderService : IOrderService
                 throw new InvalidOperationException(msg);
             }
 
-            var total = request.Items.Sum(i => i.Cantidad * i.Precio);
-
-            var order = new OrderHeader
+            var productIds = request.Items.Select(i => i.ProductoId);
+            var allProductsExist = await _orderRepository.AllProductsExistAsync(productIds, cancellationToken);
+            if (!allProductsExist)
             {
-                ClientId = request.ClienteId,
-                UserName = request.Usuario,
-                Date = DateTime.UtcNow,
-                Total = total,
-                Details = request.Items.Select(i => new OrderDetail
+                var msg = "Uno o más productos no existen en la tabla Products.";
+                _logger.LogWarning(msg);
+
+                await _auditoryRepository.CreateIsolatedAsync(new LogAuditory
                 {
-                    ProductId = i.ProductoId,
-                    Quantity = i.Cantidad,
-                    Price = i.Precio
-                }).ToList()
-            };
+                    Date = DateTime.UtcNow,
+                    Event = "ERROR_DATOS",
+                    Description = msg
+                }, cancellationToken);
+
+                await transaction.RollbackAsync(cancellationToken);
+                throw new InvalidOperationException(msg);
+            }
+
+            var order = request.ToEntity();
 
             var created = await _orderRepository.CreateAsync(order, cancellationToken);
 
-            await _auditoryRepository.CreateAsync(new LogAuditory
+            await transaction.CommitAsync(cancellationToken);
+
+            await _auditoryRepository.CreateIsolatedAsync(new LogAuditory
             {
                 Date = DateTime.UtcNow,
                 Event = "EXITO",
                 Description = $"Pedido registrado exitosamente. Id: {created.Id}, Total: {created.Total}"
             }, cancellationToken);
 
-            await transaction.CommitAsync(cancellationToken);
-
             _logger.LogInformation("Pedido {OrderId} registrado exitosamente", created.Id);
 
-            return MapToResponse(created);
+            return created.ToResponse();
         }
         catch (InvalidOperationException)
         {
@@ -106,7 +111,9 @@ public class OrderService : IOrderService
 
             try
             {
-                await _auditoryRepository.CreateAsync(new LogAuditory
+                await transaction.RollbackAsync(cancellationToken);
+
+                await _auditoryRepository.CreateIsolatedAsync(new LogAuditory
                 {
                     Date = DateTime.UtcNow,
                     Event = "ERROR",
@@ -118,23 +125,8 @@ public class OrderService : IOrderService
                 _logger.LogError(auditEx, "No se pudo registrar el log de auditoría del error");
             }
 
-            await transaction.RollbackAsync(cancellationToken);
             throw;
         }
     }
 
-    private static OrderResponse MapToResponse(OrderHeader order) => new()
-    {
-        Id = order.Id,
-        ClienteId = order.ClientId,
-        Usuario = order.UserName,
-        Fecha = order.Date,
-        Total = order.Total,
-        Items = order.Details.Select(d => new OrderDetailResponse
-        {
-            ProductoId = d.ProductId,
-            Cantidad = d.Quantity,
-            Precio = d.Price
-        }).ToList()
-    };
 }

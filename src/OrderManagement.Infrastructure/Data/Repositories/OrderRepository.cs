@@ -31,6 +31,13 @@ public class OrderRepository : IOrderRepository
             .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
     }
 
+    public async Task<bool> AllProductsExistAsync(IEnumerable<int> productIds, CancellationToken cancellationToken = default)
+    {
+        var ids = productIds.Distinct().ToList();
+        var existingCount = await _context.Products.CountAsync(p => ids.Contains(p.Id), cancellationToken);
+        return existingCount == ids.Count;
+    }
+
     public async Task<OrderHeader> CreateAsync(OrderHeader orderHeader, CancellationToken cancellationToken = default)
     {
         await _context.OrderHeaders.AddAsync(orderHeader, cancellationToken);
