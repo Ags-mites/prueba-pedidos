@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using OrderManagement.API.Middlewares;
 using OrderManagement.Application.Interfaces;
 using OrderManagement.Application.Services;
 using OrderManagement.Domain.Interfaces;
@@ -19,6 +20,8 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddHttpClient<IExternalValidationService, CustomerValidationService>();
 
 var app = builder.Build();
+
+app.UseMiddleware<ErrorHandlerMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
