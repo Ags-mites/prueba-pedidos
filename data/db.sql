@@ -25,9 +25,13 @@ CREATE TABLE OrderDetails (
     FOREIGN KEY (ProductId) REFERENCES Products(Id)
 );
 
-CreaTE TABLE LogAuditory (
+CREATE TABLE LogAuditory (
     Id INT PRIMARY KEY IDENTITY(1,1),
     Date DATETIME NOT NULL,
     Event VARCHAR(255) NOT NULL,
     Description VARCHAR(500) NOT NULL
 );
+
+INSERT INTO Products (Name, Price) VALUES ('Laptop HP Pavilion', 1500.00);
+INSERT INTO Products (Name, Price) VALUES ('Mouse Logitech MX Master', 89.99);
+INSERT INTO Products (Name, Price) VALUES ('Teclado Mecánico Corsair K70', 179.99);
