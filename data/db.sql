@@ -1,0 +1,34 @@
+CREATE DATABASE OrdersDB;
+
+USE OrdersDB;
+
+CREATE TABLE OrderHeaders (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    ClientId INT NOT NULL,
+    Date DATETIME NOT NULL,
+    Total DECIMAL(18, 2) NOT NULL,
+    UserName VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Products (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    Name VARCHAR(255) NOT NULL,
+    Price DECIMAL(18, 2) NOT NULL
+);
+
+CREATE TABLE OrderDetails (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    OrderHeaderId INT NOT NULL,
+    ProductId INT NOT NULL,
+    Quantity INT NOT NULL,
+    Price DECIMAL(18, 2) NOT NULL,
+    FOREIGN KEY (OrderHeaderId) REFERENCES OrderHeaders(Id),
+    FOREIGN KEY (ProductId) REFERENCES Products(Id)
+);
+
+CreaTE TABLE LogAuditory (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    Date DATETIME NOT NULL,
+    Event VARCHAR(255) NOT NULL,
+    Description VARCHAR(500) NOT NULL
+);
