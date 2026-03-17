@@ -6,19 +6,11 @@ namespace OrderManagement.Infrastructure.Data.Repositories;
 
 public class AuditoryRepository : IAuditoryRepository
 {
-    private readonly AppDbContext _context;
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public AuditoryRepository(AppDbContext context, IDbContextFactory<AppDbContext> contextFactory)
+    public AuditoryRepository(IDbContextFactory<AppDbContext> contextFactory)
     {
-        _context = context;
         _contextFactory = contextFactory;
-    }
-
-    public async Task CreateAsync(LogAuditory logAuditory, CancellationToken cancellationToken = default)
-    {
-        await _context.LogAuditory.AddAsync(logAuditory, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
     }
 
     public async Task CreateIsolatedAsync(LogAuditory logAuditory, CancellationToken cancellationToken = default)

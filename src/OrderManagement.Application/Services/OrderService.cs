@@ -90,12 +90,19 @@ public class OrderService : IOrderService
 
             await transaction.CommitAsync(cancellationToken);
 
-            await _auditoryRepository.CreateIsolatedAsync(new LogAuditory
+            try
             {
-                Date = DateTime.UtcNow,
-                Event = "EXITO",
-                Description = $"Pedido registrado exitosamente. Id: {created.Id}, Total: {created.Total}"
-            }, cancellationToken);
+                await _auditoryRepository.CreateIsolatedAsync(new LogAuditory
+                {
+                    Date = DateTime.UtcNow,
+                    Event = "EXITO",
+                    Description = $"Pedido registrado exitosamente. Id: {created.Id}, Total: {created.Total}"
+                }, cancellationToken);
+            }
+            catch (Exception auditEx)
+            {
+                _logger.LogError(auditEx, "No se pudo registrar log de auditoría EXITO para pedido {OrderId}", created.Id);
+            }
 
             _logger.LogInformation("Pedido {OrderId} registrado exitosamente", created.Id);
 
