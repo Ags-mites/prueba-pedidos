@@ -1,5 +1,4 @@
 CREATE DATABASE OrdersDB;
-
 USE OrdersDB;
 
 CREATE TABLE OrderHeaders (
